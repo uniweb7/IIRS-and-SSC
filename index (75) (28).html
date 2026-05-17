@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARATS Premium OS</title>
+    <link id="dynamic-manifest" rel="manifest">
+    <style>
+        /* General Setup (ORIGINAL DESIGN) */
+        body {
+            background-color: #e9ecef;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            touch-action: pan-x pan-y;
+            height: 100vh; width: 100vw;
+        }
+
+        /* App Install Popup (ORIGINAL DESIGN) */
+        #install-popup {
+            display: none; position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            background: #ffffff; width: 90%; max-width: 350px; padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-radius: 10px; z-index: 1000;
+            text-align: center; border-left: 5px solid #3498db; box-sizing: border-box;
+            animation: slideDown 0.5s ease-out;
+        }
+        #install-popup img { width: 40px; height: 40px; margin-bottom: 5px; }
+        #install-popup p { margin: 0 0 10px 0; font-weight: bold; color: #333; font-size: 14px;}
+        #install-popup button {
+            background: #3498db; color: white; border: none; padding: 8px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;
+        }
+        #install-popup button.close-btn { background: #e74c3c; margin-left: 5px; }
+        @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 15px; opacity: 1; } }
+
+        /* Slider Container */
+        .slider-window {
+            width: 100vw; height: 100vh; overflow: auto; position: relative;
+        }
+        .pages-wrapper { 
+            display: flex; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); width: fit-content; 
+        }
+
+        /* A4 Page Card Setup */
+        .page-card {
+            width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            flex-shrink: 0; position: relative; padding: 10px 0; box-sizing: border-box;
+        }
+
+        .a4-wrapper {
+            background: #ffffff;
+            width: 96vw; max-width: 1300px; 
+            height: 88vh;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-radius: 8px; padding: 15px; box-sizing: border-box;
+            display: flex; flex-direction: column;
+        }
+
+        /* Headers */
+        .page-header { text-align: left; margin-bottom: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;}
+        .page-header h1 { color: #2c3e50; font-size: 20px; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 900;}
+        .page-header p { color: #7f8c8d; font-size: 12px; margin: 0; font-weight: bold; text-transform: uppercase;}
+
+        /* Table Box Format */
+        table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+        .table-container { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
+        
+        th, td { 
+            border: 1px solid #bdc3c7; text-align: center; 
+            word-wrap: break-word; vertical-align: middle; line-height: 1.2;
+            color: #2c3e50; font-weight: 600; overflow: hidden;
+        }
+        
+        th { color: white; font-weight: bold; font-size: 12px; padding: 5px 2px; height: 8%; cursor: pointer;}
+        th span { font-size: 10px; font-weight: normal; display: block; margin-top: 2px; opacity: 0.9; text-transform: uppercase;}
+        
+        td { 
+            font-size: clamp(10px, 1.5vh, 13px);
+            padding: 4px; 
+            cursor: pointer; transition: background 0.2s; user-select: none; 
+        }
+        td:hover { background-color: #f1f2f6; }
+        td.completed { background-color: #2ecc71 !important; color: white; font-weight: bold; border-color: #27ae60; }
+        
+        /* Page Indicator */
+        .page-indicator-container {
+            position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10;
+        }
+        .page-indicator {
+            font-size: 12px; font-weight: bold; color: #7f8c8d; background: #ffffff;
+            padding: 5px 15px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid #ecf0f1;
+        }
+
+        /* Floating Action Buttons */
+        .floating-actions {
+            position: fixed; bottom: 15px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 20;
+        }
+        .action-btn {
+            background: #ffffff; color: #2c3e50; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25); cursor: pointer; transition: 0.3s; border: 1px solid #ecf0f1;
+        }
+        .action-btn.calendar { background: #5865F2; color: white; border: none; }
+        .action-btn:active { transform: scale(0.9); }
+
+        /* Modals Overlay */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); z-index: 100; backdrop-filter: blur(3px);
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+
+        /* Month Selector Modal */
+        .month-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%);
+            background: white; width: 85%; max-width: 350px; padding: 25px;
+            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 101; display: none; text-align: center; transition: transform 0.3s ease;
+        }
+        .month-modal h2 { margin-top: 0; color: #2c3e50; font-size: 18px; text-transform: uppercase; }
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .month-btn {
+            background: #f1f2f6; border: none; padding: 10px 5px; border-radius: 8px;
+            font-weight: bold; color: #34495e; cursor: pointer; font-size: 12px; transition: 0.2s;
+        }
+        .month-btn.active { background: #5865F2; color: white; box-shadow: 0 4px 8px rgba(88, 101, 242, 0.4); }
+
+        /* Daily Detail View Modal */
+        .daily-modal {
+            position: fixed; top: 100vh; left: 0; width: 100vw; height: 100vh;
+            background: #ffffff; z-index: 105; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; box-sizing: border-box;
+        }
+        .daily-modal.open { top: 0; }
+        .daily-header {
+            background: #5865F2; color: white; padding: 15px; 
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .daily-header h2 { margin: 0; font-size: 18px; text-transform: uppercase; }
+        .close-daily-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer;}
+        .daily-content { padding: 0; overflow-y: auto; flex-grow: 1; }
+        .daily-table { width: 100%; border-collapse: collapse; }
+        .daily-table td { 
+            padding: 15px; text-align: left; font-size: 14px; font-weight: bold; color: #2c3e50;
+            border-bottom: 1px solid #ecf0f1; border-top: none; border-left: none; border-right: none;
+        }
+        .daily-table tr { transition: background 0.2s; cursor: pointer; }
+        .daily-table tr.completed td { background: #2ecc71; color: white; }
+
+        /* Print Mode */
+        body.export-mode { background: white; overflow: visible; height: auto; }
+        body.export-mode .slider-window { overflow: visible; height: auto; }
+        body.export-mode .pages-wrapper { flex-direction: column; transform: none !important; width: 100%; }
+        body.export-mode .page-card { height: auto; page-break-after: always; padding: 0; }
+        body.export-mode .a4-wrapper { box-shadow: none; border: none; width: 100%; max-width: 100%; height: 100vh; }
+        body.export-mode .page-indicator-container, body.export-mode .floating-actions, body.export-mode #install-popup { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="install-popup">
+        <img id="popup-icon" alt="Indian Emblem Icon">
+        <p>📲 Install ARATS Web App!</p>
+        <button id="install-btn">Install App</button>
+        <button class="close-btn" onclick="document.getElementById('install-popup').style.display='none'">✖</button>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+    <div class="month-modal" id="month-modal">
+        <h2>Select Month (2026)</h2>
+        <div class="month-grid" id="month-grid"></div>
+    </div>
+
+    <div class="daily-modal" id="daily-modal">
+        <div class="daily-header" id="daily-header-bg">
+            <h2 id="daily-title">Date</h2>
+            <button class="close-daily-btn" onclick="closeDailyModal()">✖</button>
+        </div>
+        <div class="daily-content">
+            <table class="daily-table" id="daily-activities"></table>
+        </div>
+    </div>
+
+    <div class="slider-window" id="planner-container">
+        <div class="pages-wrapper" id="pages-wrapper"></div>
+    </div>
+
+    <div class="page-indicator-container">
+        <div class="page-indicator" id="page-indicator">Loading...</div>
+    </div>
+
+    <div class="floating-actions">
+        <div class="action-btn calendar" onclick="openMonthSelector()" title="Change Month">📅</div>
+        <div class="action-btn" onclick="printPage()" title="Print Layout">🖨️</div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. PWA & INDIAN EMBLEM INJECTION (FIXED)
+           ========================================== */
+        // High Quality SVG of Ashoka Chakra
+        const ashokaChakraSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#000080" stroke-width="4"/>
+            <circle cx="50" cy="50" r="10" fill="#000080"/>
+            ${Array.from({length: 24}).map((_, i) => `<line x1="50" y1="50" x2="${50 + 45*Math.cos(i*15*Math.PI/180)}" y2="${50 + 45*Math.sin(i*15*Math.PI/180)}" stroke="#000080" stroke-width="2"/>`).join('')}
+        </svg>`;
+        
+        const encodedIcon = "data:image/svg+xml;base64," + btoa(ashokaChakraSvg);
+        document.getElementById('popup-icon').src = encodedIcon;
+
+        // Create Dynamic Manifest
+        const manifestData = {
+            "name": "ARATS Premium OS",
+            "short_name": "ARATS",
+            "start_url": window.location.href.split('?')[0],
+            "display": "standalone",
+            "background_color": "#e9ecef",
+            "theme_color": "#5865F2",
+            "icons": [
+                {"src": encodedIcon, "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"},
+                {"src": encodedIcon, "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+        document.getElementById('dynamic-manifest').href = URL.createObjectURL(manifestBlob);
+
+        // Service Worker Logic
+        const swCode = `
+            self.addEventListener('install', (e) => self.skipWaiting());
+            self.addEventListener('activate', (e) => self.clients.claim());
+            self.addEventListener('fetch', (e) => {
+                e.respondWith(fetch(e.request).catch(() => new Response('Offline Mode Active')));
+            });
+        `;
+        const swBlob = new Blob([swCode], {type: 'application/javascript'});
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+        }
+
+        // --- PWA INSTALL LOGIC FIX ---
+        let deferredPrompt;
+        const installPopup = document.getElementById('install-popup');
+        
+        // Check if the app is already opened in standalone mode (home screen)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault(); // Prevent default browser prompt
+                deferredPrompt = e; // Store event for later
+                installPopup.style.display = 'block'; // Show our custom popup
+            });
+        }
+
+        // When user clicks our custom Install button
+        document.getElementById('install-btn').addEventListener('click', async () => {
+            installPopup.style.display = 'none';
+            if (deferredPrompt) { 
+                deferredPrompt.prompt(); // Show native browser prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null; // Reset
+            } else {
+                // Fallback for browsers that don't support automated prompts
+                alert("Please use your browser's menu (3 dots) and select 'Add to Home Screen' or 'Install App'.");
+            }
+        });
+
+        // Hide popup instantly if installation completes successfully
+        window.addEventListener('appinstalled', () => {
+            installPopup.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        /* ==========================================
+           2. ORIGINAL PLANNER LOGIC & DATA
+           ========================================== */
+        
+        const activitiesList = [
+            "Objective Resolution",
+            "SSC GD Classes Math & Reasoning",
+            "SSC GD Classes Hindi & General Study",
+            "Hindi Marathon",
+            "English Marathon",
+            "Test Series",
+            "Mathematics Marathon",
+            "Reasoning Marathon",
+            "General Study Merathon",
+            "P2I"
+        ];
+        
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const headerColors = ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#1abc9c", "#3498db", "#9b59b6"];
+        
+        const monthsData = [
+            { id: 2, name: "March", days: 31, startDay: 12 }, { id: 3, name: "April", days: 30, startDay: 1 },
+            { id: 4, name: "May", days: 31, startDay: 1 }, { id: 5, name: "June", days: 30, startDay: 1 },
+            { id: 6, name: "July", days: 31, startDay: 1 }, { id: 7, name: "August", days: 31, startDay: 1 },
+            { id: 8, name: "September", days: 30, startDay: 1 }, { id: 9, name: "October", days: 31, startDay: 1 },
+            { id: 10, name: "November", days: 30, startDay: 1 }, { id: 11, name: "December", days: 31, startDay: 1 }
+        ];
+
+        let currentPage = 0;
+        let totalPages = 0;
+        let currentMonthId = 2; 
+
+        function safeId(str) { return str.replace(/[^a-zA-Z0-9]/g, ''); }
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function getScheduleForMonth(monthObj) {
+            let storageKey = `arats_original_v3_${monthObj.id}`;
+            let savedSchedule = localStorage.getItem(storageKey);
+            let scheduleData = [];
+            let totalDaysToGenerate = monthObj.days - monthObj.startDay + 1;
+
+            if (savedSchedule) {
+                scheduleData = JSON.parse(savedSchedule);
+            } else {
+                for(let i = 0; i < totalDaysToGenerate; i++) scheduleData.push(shuffleArray(activitiesList));
+                localStorage.setItem(storageKey, JSON.stringify(scheduleData));
+            }
+            return scheduleData;
+        }
+
+        function initApp() {
+            let today = new Date();
+            let currentRealMonth = today.getMonth();
+            let currentRealYear = today.getFullYear();
+            let targetDateNum = null;
+
+            if (currentRealYear === 2026 && currentRealMonth >= 2 && currentRealMonth <= 11) {
+                currentMonthId = currentRealMonth;
+                targetDateNum = today.getDate(); 
+            } else {
+                const savedMonth = localStorage.getItem('arats_selected_month_final');
+                if (savedMonth !== null) currentMonthId = parseInt(savedMonth);
+            }
+
+            buildMonthSelector();
+            renderMonth(currentMonthId, targetDateNum);
+        }
+
+        function renderMonth(monthId, targetDateNum = null) {
+            const wrapper = document.getElementById('pages-wrapper');
+            wrapper.innerHTML = ''; wrapper.style.transform = `translateX(0vw)`; 
+
+            let monthObj = monthsData.find(m => m.id === monthId);
+            let scheduleData = getScheduleForMonth(monthObj);
+            
+            let scheduleDates = [];
+            let startDate = new Date(2026, monthObj.id, monthObj.startDay); 
+            let totalDays = monthObj.days - monthObj.startDay + 1;
+
+            for (let i = 0; i < totalDays; i++) {
+                let currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                scheduleDates.push({
+                    fullDateId: `2026-${monthObj.id}-${currentDate.getDate()}`,
+                    displayDate: `${currentDate.getDate()} ${monthObj.name}`,
+                    dateNum: currentDate.getDate(),
+                    dayIndex: currentDate.getDay(),
+                    dayStr: dayNames[currentDate.getDay()],
+                    dataIndex: i
+                });
+            }
+
+            let pageChunks = [];
+            let currentChunk = [];
+            scheduleDates.forEach((dayObj, index) => {
+                currentChunk.push(dayObj);
+                if (dayObj.dayIndex === 0 || index === scheduleDates.length - 1) {
+                    pageChunks.push(currentChunk); currentChunk = [];
+                }
+            });
+
+            totalPages = pageChunks.length;
+            let targetPageIndex = 0;
+
+            pageChunks.forEach((chunk, pageIndex) => {
+                if (targetDateNum && chunk.some(d => d.dateNum === targetDateNum)) targetPageIndex = pageIndex;
+
+                let pageDiv = document.createElement('div');
+                pageDiv.className = 'page-card';
+                
+                let a4Wrapper = document.createElement('div');
+                a4Wrapper.className = 'a4-wrapper';
+
+                a4Wrapper.innerHTML = `
+                    <div class="page-header">
+                        <div>
+                            <h1>ARATS PREMIUM OS</h1>
+                            <p>${monthObj.name} 2026 | WEEK ${pageIndex + 1}</p>
+                        </div>
+                    </div>
+                `;
+
+                let tableContainer = document.createElement('div');
+                tableContainer.className = 'table-container';
+
+                let table = document.createElement('table');
+                let thead = document.createElement('thead');
+                let headerRow = document.createElement('tr');
+                
+                chunk.forEach((dayObj) => {
+                    let th = document.createElement('th');
+                    th.innerHTML = `${dayObj.dateNum} ${monthObj.name.toUpperCase()}<br><span>${dayObj.dayStr}</span>`;
+                    let color = headerColors[dayObj.dayIndex];
+                    th.style.backgroundColor = color;
+                    
+                    if (color === "#f1c40f") th.style.color = "#333";
+                    
+                    th.onclick = () => openDailyModal(dayObj, scheduleData[dayObj.dataIndex], color);
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                let tbody = document.createElement('tbody');
+                
+                for (let row = 0; row < activitiesList.length; row++) {
+                    let tr = document.createElement('tr');
+                    tr.style.height = "11.11%"; 
+
+                    chunk.forEach((dayObj) => {
+                        let td = document.createElement('td');
+                        let activityName = scheduleData[dayObj.dataIndex][row];
+                        td.innerHTML = activityName; 
+                        
+                        let cellId = `cell-${dayObj.fullDateId}-${safeId(activityName)}`;
+                        td.id = cellId;
+
+                        if(localStorage.getItem(cellId) === 'done') td.classList.add('completed');
+
+                        let clickCount = 0; let clickTimer;
+                        td.addEventListener('click', function() {
+                            if (!this.classList.contains('completed')) {
+                                this.classList.add('completed'); localStorage.setItem(this.id, 'done'); clickCount = 0;
+                            } else {
+                                clickCount++;
+                                if (clickCount === 3) {
+                                    this.classList.remove('completed'); localStorage.removeItem(this.id); clickCount = 0;
+                                }
+                                clearTimeout(clickTimer); clickTimer = setTimeout(() => { clickCount = 0; }, 600);
+                            }
+                        });
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                }
+                table.appendChild(tbody);
+                tableContainer.appendChild(table);
+                a4Wrapper.appendChild(tableContainer);
+                pageDiv.appendChild(a4Wrapper);
+                wrapper.appendChild(pageDiv);
+            });
+
+            currentPage = targetPageIndex;
+            updateSlider();
+        }
+
+        function openDailyModal(dayObj, dailyActivities, headerColor) {
+            document.getElementById('daily-title').innerText = `${dayObj.displayDate} - ${dayObj.dayStr}`;
+            document.getElementById('daily-header-bg').style.background = headerColor;
+            
+            const tbody = document.createElement('tbody');
+            dailyActivities.forEach(activity => {
+                let cellId = `cell-${dayObj.fullDateId}-${safeId(activity)}`;
+                let isDone = localStorage.getItem(cellId) === 'done';
+
+                let tr = document.createElement('tr');
+                if(isDone) tr.className = 'completed';
+                
+                let td = document.createElement('td');
+                td.innerHTML = activity;
+                tr.appendChild(td);
+                
+                tr.onclick = function() {
+                    let tableCell = document.getElementById(cellId);
+                    if (this.classList.contains('completed')) {
+                        this.classList.remove('completed'); localStorage.removeItem(cellId);
+                        if(tableCell) tableCell.classList.remove('completed');
+                    } else {
+                        this.classList.add('completed'); localStorage.setItem(cellId, 'done');
+                        if(tableCell) tableCell.classList.add('completed');
+                    }
+                };
+                tbody.appendChild(tr);
+            });
+
+            const table = document.getElementById('daily-activities');
+            table.innerHTML = ''; table.appendChild(tbody);
+            document.getElementById('daily-modal').classList.add('open');
+        }
+
+        function closeDailyModal() { document.getElementById('daily-modal').classList.remove('open'); }
+
+        function buildMonthSelector() {
+            const grid = document.getElementById('month-grid'); grid.innerHTML = '';
+            monthsData.forEach(m => {
+                let btn = document.createElement('button');
+                btn.className = `month-btn ${m.id === currentMonthId ? 'active' : ''}`;
+                btn.innerText = m.name;
+                btn.onclick = () => {
+                    localStorage.setItem('arats_selected_month_final', m.id); currentMonthId = m.id;
+                    closeModals(); renderMonth(currentMonthId); buildMonthSelector(); 
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        function openMonthSelector() {
+            document.getElementById('overlay').style.display = 'block'; document.getElementById('month-modal').style.display = 'block';
+            setTimeout(() => { document.getElementById('overlay').style.opacity = '1'; document.getElementById('month-modal').style.transform = 'translate(-50%, -50%)'; }, 10);
+        }
+
+        function closeModals() {
+            document.getElementById('overlay').style.opacity = '0'; document.getElementById('month-modal').style.transform = 'translate(-50%, -40%)';
+            setTimeout(() => { document.getElementById('overlay').style.display = 'none'; document.getElementById('month-modal').style.display = 'none'; }, 300);
+        }
+
+        let touchstartX = 0; let touchendX = 0;
+        const sliderContainer = document.getElementById('planner-container');
+
+        sliderContainer.addEventListener('touchstart', e => touchstartX = e.changedTouches[0].screenX, {passive: true});
+        sliderContainer.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX; let threshold = 40; 
+            if (touchendX < touchstartX - threshold && currentPage < totalPages - 1) { currentPage++; updateSlider(); }
+            if (touchendX > touchstartX + threshold && currentPage > 0) { currentPage--; updateSlider(); }
+        }, {passive: true});
+
+        function updateSlider() {
+            document.getElementById('pages-wrapper').style.transform = `translateX(-${currentPage * 100}vw)`;
+            document.getElementById('page-indicator').innerText = `Page ${currentPage + 1} / ${totalPages}`;
+        }
+
+        function printPage() {
+            document.body.classList.add('export-mode');
+            setTimeout(() => { window.print(); document.body.classList.remove('export-mode'); }, 500);
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
