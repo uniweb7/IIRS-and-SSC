@@ -2,45 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ARATS Premium OS</title>
     <link id="dynamic-manifest" rel="manifest">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /* General Setup (ORIGINAL DESIGN) */
+        /* General Setup (ORIGINAL DESIGN MAINTAINED) */
+        :root {
+            --bg-color: #e9ecef;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --border-color: #bdc3c7;
+            --hover-bg: #f1f2f6;
+            --primary: #5865F2;
+        }
+
+        body.dark-mode {
+            --bg-color: #1e1e24;
+            --card-bg: #2b2b36;
+            --text-main: #f5f6fa;
+            --text-sub: #dcdde1;
+            --border-color: #4b4b57;
+            --hover-bg: #353542;
+            --primary: #7289da;
+        }
+
         body {
-            background-color: #e9ecef;
+            background-color: var(--bg-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0; padding: 0;
             display: flex; flex-direction: column;
             overflow: hidden;
             touch-action: pan-x pan-y;
             height: 100vh; width: 100vw;
+            transition: background-color 0.3s;
         }
 
-        /* App Install Popup (ORIGINAL DESIGN) */
+        /* App Install Popup (UPGRADED PREMIUM DESIGN) */
         #install-popup {
-            display: none; position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
-            background: #ffffff; width: 90%; max-width: 350px; padding: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-radius: 10px; z-index: 1000;
-            text-align: center; border-left: 5px solid #3498db; box-sizing: border-box;
-            animation: slideDown 0.5s ease-out;
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%;
+            background: var(--card-bg); padding: 25px 20px 35px 20px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 9999;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+            text-align: center; box-sizing: border-box;
+            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        #install-popup img { width: 40px; height: 40px; margin-bottom: 5px; }
-        #install-popup p { margin: 0 0 10px 0; font-weight: bold; color: #333; font-size: 14px;}
+        .install-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; }
+        #install-popup img { width: 55px; height: 55px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .install-text { text-align: left; }
+        .install-text h3 { margin: 0; color: var(--text-main); font-size: 18px; font-weight: 900;}
+        .install-text p { margin: 2px 0 0 0; color: var(--text-sub); font-size: 12px;}
+        .install-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px;}
         #install-popup button {
-            background: #3498db; color: white; border: none; padding: 8px 15px;
-            border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px;
+            background: var(--primary); color: white; border: none; padding: 12px 25px;
+            border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 16px; flex-grow: 1;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4); transition: 0.2s;
         }
-        #install-popup button.close-btn { background: #e74c3c; margin-left: 5px; }
-        @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 15px; opacity: 1; } }
+        #install-popup button:active { transform: scale(0.95); }
+        #install-popup button.close-btn { background: #e74c3c; flex-grow: 0; padding: 12px 20px; box-shadow: none; }
+        @keyframes slideUp { from { bottom: -150px; opacity: 0; } to { bottom: 0; opacity: 1; } }
 
         /* Slider Container */
-        .slider-window {
-            width: 100vw; height: 100vh; overflow: auto; position: relative;
-        }
-        .pages-wrapper { 
-            display: flex; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); width: fit-content; 
-        }
+        .slider-window { width: 100vw; height: 100vh; overflow: auto; position: relative; }
+        .pages-wrapper { display: flex; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); width: fit-content; }
 
         /* A4 Page Card Setup */
         .page-card {
@@ -50,137 +75,112 @@
         }
 
         .a4-wrapper {
-            background: #ffffff;
-            width: 96vw; max-width: 1300px; 
-            height: 88vh;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            border-radius: 8px; padding: 15px; box-sizing: border-box;
-            display: flex; flex-direction: column;
+            background: var(--card-bg); width: 96vw; max-width: 1300px; height: 88vh;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 8px; padding: 15px; 
+            box-sizing: border-box; display: flex; flex-direction: column; transition: background 0.3s;
         }
 
-        /* Headers */
+        /* Headers & Progress Bar */
         .page-header { text-align: left; margin-bottom: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;}
-        .page-header h1 { color: #2c3e50; font-size: 20px; margin: 0 0 2px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 900;}
-        .page-header p { color: #7f8c8d; font-size: 12px; margin: 0; font-weight: bold; text-transform: uppercase;}
+        .header-left h1 { color: var(--text-main); font-size: 20px; margin: 0 0 2px 0; text-transform: uppercase; font-weight: 900;}
+        .header-left p { color: var(--text-sub); font-size: 12px; margin: 0; font-weight: bold; text-transform: uppercase;}
+        
+        .header-stats { text-align: right; }
+        .streak-badge { background: #ff9f43; color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-bottom: 5px; display: inline-block;}
+        .progress-container { width: 150px; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-top: 5px;}
+        .progress-bar { height: 100%; background: #2ecc71; width: 0%; transition: width 0.5s ease; }
 
         /* Table Box Format */
         table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
         .table-container { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
         
         th, td { 
-            border: 1px solid #bdc3c7; text-align: center; 
+            border: 1px solid var(--border-color); text-align: center; 
             word-wrap: break-word; vertical-align: middle; line-height: 1.2;
-            color: #2c3e50; font-weight: 600; overflow: hidden;
+            color: var(--text-main); font-weight: 600; overflow: hidden;
         }
         
         th { color: white; font-weight: bold; font-size: 12px; padding: 5px 2px; height: 8%; cursor: pointer;}
         th span { font-size: 10px; font-weight: normal; display: block; margin-top: 2px; opacity: 0.9; text-transform: uppercase;}
         
-        td { 
-            font-size: clamp(10px, 1.5vh, 13px);
-            padding: 4px; 
-            cursor: pointer; transition: background 0.2s; user-select: none; 
-        }
-        td:hover { background-color: #f1f2f6; }
-        td.completed { background-color: #2ecc71 !important; color: white; font-weight: bold; border-color: #27ae60; }
-        
-        /* Page Indicator */
-        .page-indicator-container {
-            position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10;
-        }
-        .page-indicator {
-            font-size: 12px; font-weight: bold; color: #7f8c8d; background: #ffffff;
-            padding: 5px 15px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid #ecf0f1;
-        }
+        td { font-size: clamp(10px, 1.5vh, 13px); padding: 4px; cursor: pointer; transition: background 0.2s, transform 0.1s; user-select: none; }
+        td:hover { background-color: var(--hover-bg); }
+        td:active { transform: scale(0.95); }
+        td.completed { background-color: #2ecc71 !important; color: white; font-weight: bold; border-color: #27ae60; position: relative;}
+        td.completed::after { content: '✓'; position: absolute; top: 2px; right: 4px; font-size: 10px; opacity: 0.7; }
 
-        /* Floating Action Buttons */
-        .floating-actions {
-            position: fixed; bottom: 15px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 20;
-        }
-        .action-btn {
-            background: #ffffff; color: #2c3e50; width: 45px; height: 45px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center; font-size: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.25); cursor: pointer; transition: 0.3s; border: 1px solid #ecf0f1;
-        }
-        .action-btn.calendar { background: #5865F2; color: white; border: none; }
+        /* Floating Widgets */
+        .page-indicator-container { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 10px; align-items: center;}
+        .page-indicator { font-size: 12px; font-weight: bold; color: var(--text-sub); background: var(--card-bg); padding: 6px 15px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid var(--border-color); }
+        .live-clock { font-size: 12px; font-weight: bold; color: white; background: var(--text-main); padding: 6px 15px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+        .floating-actions { position: fixed; bottom: 15px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 20; }
+        .action-btn { background: var(--card-bg); color: var(--text-main); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); cursor: pointer; transition: 0.3s; border: 1px solid var(--border-color); }
+        .action-btn.primary { background: var(--primary); color: white; border: none; }
         .action-btn:active { transform: scale(0.9); }
 
-        /* Modals Overlay */
-        .overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.5); z-index: 100; backdrop-filter: blur(3px);
-            opacity: 0; transition: opacity 0.3s ease;
-        }
+        /* Pomodoro Timer */
+        .pomodoro-widget { position: fixed; top: 15px; right: 20px; background: var(--card-bg); border-radius: 15px; padding: 10px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; display: flex; align-items: center; gap: 10px; border: 2px solid var(--primary); cursor: pointer;}
+        .pomodoro-widget span { font-weight: 900; color: var(--text-main); font-size: 16px; }
+        .pomodoro-widget button { background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; padding: 4px 8px; font-weight: bold;}
 
-        /* Month Selector Modal */
-        .month-modal {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%);
-            background: white; width: 85%; max-width: 350px; padding: 25px;
-            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 101; display: none; text-align: center; transition: transform 0.3s ease;
-        }
-        .month-modal h2 { margin-top: 0; color: #2c3e50; font-size: 18px; text-transform: uppercase; }
-        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .month-btn {
-            background: #f1f2f6; border: none; padding: 10px 5px; border-radius: 8px;
-            font-weight: bold; color: #34495e; cursor: pointer; font-size: 12px; transition: 0.2s;
-        }
-        .month-btn.active { background: #5865F2; color: white; box-shadow: 0 4px 8px rgba(88, 101, 242, 0.4); }
+        /* Tool Menu Overlay */
+        .tools-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%); background: var(--card-bg); width: 85%; max-width: 350px; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 101; display: none; text-align: center; transition: transform 0.3s ease; }
+        .tools-modal h2 { margin-top: 0; color: var(--text-main); font-size: 18px; text-transform: uppercase; }
+        .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .tool-btn { background: var(--hover-bg); border: 1px solid var(--border-color); padding: 12px 5px; border-radius: 8px; font-weight: bold; color: var(--text-main); cursor: pointer; font-size: 12px; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 5px;}
+        .tool-btn i { font-size: 18px; }
+        .tool-btn:hover { background: var(--primary); color: white; }
 
-        /* Daily Detail View Modal */
-        .daily-modal {
-            position: fixed; top: 100vh; left: 0; width: 100vw; height: 100vh;
-            background: #ffffff; z-index: 105; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; flex-direction: column; box-sizing: border-box;
-        }
-        .daily-modal.open { top: 0; }
-        .daily-header {
-            background: #5865F2; color: white; padding: 15px; 
-            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .daily-header h2 { margin: 0; font-size: 18px; text-transform: uppercase; }
-        .close-daily-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer;}
-        .daily-content { padding: 0; overflow-y: auto; flex-grow: 1; }
-        .daily-table { width: 100%; border-collapse: collapse; }
-        .daily-table td { 
-            padding: 15px; text-align: left; font-size: 14px; font-weight: bold; color: #2c3e50;
-            border-bottom: 1px solid #ecf0f1; border-top: none; border-left: none; border-right: none;
-        }
-        .daily-table tr { transition: background 0.2s; cursor: pointer; }
-        .daily-table tr.completed td { background: #2ecc71; color: white; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease; }
 
-        /* Print Mode */
-        body.export-mode { background: white; overflow: visible; height: auto; }
-        body.export-mode .slider-window { overflow: visible; height: auto; }
-        body.export-mode .pages-wrapper { flex-direction: column; transform: none !important; width: 100%; }
-        body.export-mode .page-card { height: auto; page-break-after: always; padding: 0; }
-        body.export-mode .a4-wrapper { box-shadow: none; border: none; width: 100%; max-width: 100%; height: 100vh; }
-        body.export-mode .page-indicator-container, body.export-mode .floating-actions, body.export-mode #install-popup { display: none !important; }
+        /* Print/PDF Export Mode (STRICT A4) */
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; overflow: visible !important; height: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .slider-window { overflow: visible !important; height: auto !important; }
+            .pages-wrapper { flex-direction: column !important; transform: none !important; width: 100% !important; }
+            .page-card { height: 100vh !important; page-break-after: always !important; padding: 0 !important; align-items: flex-start !important;}
+            .a4-wrapper { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; height: 100vh !important; border-radius: 0 !important; padding: 10mm !important; background: white !important; }
+            th, td { color: black !important; border-color: #999 !important; }
+            .page-indicator-container, .floating-actions, #install-popup, .pomodoro-widget, .overlay, .tools-modal { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
     <div id="install-popup">
-        <img id="popup-icon" alt="Indian Emblem Icon">
-        <p>📲 Install ARATS Web App!</p>
-        <button id="install-btn">Install App</button>
-        <button class="close-btn" onclick="document.getElementById('install-popup').style.display='none'">✖</button>
+        <div class="install-header">
+            <img id="popup-icon" alt="App Icon">
+            <div class="install-text">
+                <h3>ARATS Premium OS</h3>
+                <p>Install Web App for Offline Access & Better UI</p>
+            </div>
+        </div>
+        <div class="install-actions">
+            <button id="install-btn">Install App</button>
+            <button class="close-btn" onclick="document.getElementById('install-popup').style.display='none'">✖</button>
+        </div>
+    </div>
+
+    <div class="pomodoro-widget" onclick="togglePomodoro()">
+        ⏱️ <span id="pomo-time">25:00</span>
+        <button id="pomo-btn">Start</button>
     </div>
 
     <div class="overlay" id="overlay" onclick="closeModals()"></div>
 
-    <div class="month-modal" id="month-modal">
-        <h2>Select Month (2026)</h2>
-        <div class="month-grid" id="month-grid"></div>
-    </div>
-
-    <div class="daily-modal" id="daily-modal">
-        <div class="daily-header" id="daily-header-bg">
-            <h2 id="daily-title">Date</h2>
-            <button class="close-daily-btn" onclick="closeDailyModal()">✖</button>
-        </div>
-        <div class="daily-content">
-            <table class="daily-table" id="daily-activities"></table>
+    <div class="tools-modal" id="tools-modal">
+        <h2>Dashboard & Settings</h2>
+        <div style="margin-bottom: 15px; font-size: 12px; color: var(--text-sub);">Select Month</div>
+        <div class="tools-grid" id="month-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;"></div>
+        
+        <div style="margin-bottom: 15px; font-size: 12px; color: var(--text-sub);">Quick Actions</div>
+        <div class="tools-grid">
+            <button class="tool-btn" onclick="toggleDarkMode()"><i>🌙</i> Dark Mode</button>
+            <button class="tool-btn" onclick="exportData()"><i>💾</i> Backup Data</button>
+            <button class="tool-btn" onclick="resetMonth()" style="color: #e74c3c;"><i>🗑️</i> Clear Month</button>
+            <button class="tool-btn" onclick="printPage()"><i>🖨️</i> Save PDF</button>
         </div>
     </div>
 
@@ -189,36 +189,39 @@
     </div>
 
     <div class="page-indicator-container">
+        <div class="live-clock" id="live-clock">00:00:00</div>
         <div class="page-indicator" id="page-indicator">Loading...</div>
     </div>
 
     <div class="floating-actions">
-        <div class="action-btn calendar" onclick="openMonthSelector()" title="Change Month">📅</div>
-        <div class="action-btn" onclick="printPage()" title="Print Layout">🖨️</div>
+        <div class="action-btn primary" onclick="openTools()" title="Menu & Settings">⚙️</div>
+        <div class="action-btn" onclick="printPage()" title="Download PDF">📥</div>
     </div>
+
+    <audio id="success-sound" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3" preload="auto"></audio>
 
     <script>
         /* ==========================================
-           1. PWA & INDIAN EMBLEM INJECTION (FIXED)
+           FEATURE 1-5: ENHANCED PWA & INSTALLATION
            ========================================== */
-        // High Quality SVG of Ashoka Chakra
-        const ashokaChakraSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#000080" stroke-width="4"/>
-            <circle cx="50" cy="50" r="10" fill="#000080"/>
-            ${Array.from({length: 24}).map((_, i) => `<line x1="50" y1="50" x2="${50 + 45*Math.cos(i*15*Math.PI/180)}" y2="${50 + 45*Math.sin(i*15*Math.PI/180)}" stroke="#000080" stroke-width="2"/>`).join('')}
+        const ashokaChakraSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="background:#fff; border-radius:12px;">
+            <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#5865F2" stroke-width="4"/>
+            <circle cx="50" cy="50" r="10" fill="#5865F2"/>
+            ${Array.from({length: 24}).map((_, i) => `<line x1="50" y1="50" x2="${50 + 45*Math.cos(i*15*Math.PI/180)}" y2="${50 + 45*Math.sin(i*15*Math.PI/180)}" stroke="#5865F2" stroke-width="2"/>`).join('')}
         </svg>`;
-        
         const encodedIcon = "data:image/svg+xml;base64," + btoa(ashokaChakraSvg);
         document.getElementById('popup-icon').src = encodedIcon;
 
-        // Create Dynamic Manifest
         const manifestData = {
             "name": "ARATS Premium OS",
             "short_name": "ARATS",
+            "description": "Premium Planner for BPSC & Competitive Exams",
             "start_url": window.location.href.split('?')[0],
             "display": "standalone",
             "background_color": "#e9ecef",
             "theme_color": "#5865F2",
+            "orientation": "landscape",
+            "categories": ["education", "productivity"],
             "icons": [
                 {"src": encodedIcon, "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"},
                 {"src": encodedIcon, "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}
@@ -227,67 +230,60 @@
         const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
         document.getElementById('dynamic-manifest').href = URL.createObjectURL(manifestBlob);
 
-        // Service Worker Logic
         const swCode = `
-            self.addEventListener('install', (e) => self.skipWaiting());
-            self.addEventListener('activate', (e) => self.clients.claim());
+            const CACHE_NAME = 'arats-premium-v4';
+            self.addEventListener('install', (e) => {
+                self.skipWaiting();
+            });
+            self.addEventListener('activate', (e) => {
+                e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))));
+                self.clients.claim();
+            });
             self.addEventListener('fetch', (e) => {
-                e.respondWith(fetch(e.request).catch(() => new Response('Offline Mode Active')));
+                e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
             });
         `;
         const swBlob = new Blob([swCode], {type: 'application/javascript'});
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{}); }
 
-        // --- PWA INSTALL LOGIC FIX ---
         let deferredPrompt;
         const installPopup = document.getElementById('install-popup');
-        
-        // Check if the app is already opened in standalone mode (home screen)
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
             window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault(); // Prevent default browser prompt
-                deferredPrompt = e; // Store event for later
-                installPopup.style.display = 'block'; // Show our custom popup
+                e.preventDefault(); deferredPrompt = e;
+                setTimeout(() => installPopup.style.display = 'block', 2000);
             });
         }
 
-        // When user clicks our custom Install button
         document.getElementById('install-btn').addEventListener('click', async () => {
             installPopup.style.display = 'none';
             if (deferredPrompt) { 
-                deferredPrompt.prompt(); // Show native browser prompt
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null; // Reset
+                deferredPrompt.prompt(); 
+                await deferredPrompt.userChoice; 
+                deferredPrompt = null; 
             } else {
-                // Fallback for browsers that don't support automated prompts
-                alert("Please use your browser's menu (3 dots) and select 'Add to Home Screen' or 'Install App'.");
+                alert("Please use browser menu -> 'Add to Home Screen' or 'Install App'.");
             }
         });
-
-        // Hide popup instantly if installation completes successfully
-        window.addEventListener('appinstalled', () => {
-            installPopup.style.display = 'none';
-            deferredPrompt = null;
-        });
+        window.addEventListener('appinstalled', () => { installPopup.style.display = 'none'; });
 
         /* ==========================================
-           2. ORIGINAL PLANNER LOGIC & DATA
+           FEATURE 6-15: CORE LOGIC & NEW MODULES
            ========================================== */
         
+        // ADDED: Science Merathon & BPSC AED Revision
         const activitiesList = [
             "Objective Resolution",
-            "SSC GD Classes Math & Reasoning",
-            "SSC GD Classes Hindi & General Study",
+            "SSC GD Math & Reasoning",
+            "SSC GD Hindi & General Study",
+            "Science Merathon", /* New Feature 1 */
+            "BPSC AED Revision", /* New Feature 2 */
             "Hindi Marathon",
             "English Marathon",
-            "Test Series",
             "Mathematics Marathon",
-            "Reasoning Marathon",
-            "General Study Merathon",
+            "Test Series",
             "P2I"
         ];
         
@@ -302,11 +298,46 @@
             { id: 10, name: "November", days: 30, startDay: 1 }, { id: 11, name: "December", days: 31, startDay: 1 }
         ];
 
-        let currentPage = 0;
-        let totalPages = 0;
-        let currentMonthId = 2; 
+        let currentPage = 0; let totalPages = 0; let currentMonthId = 4; // Default to May
 
         function safeId(str) { return str.replace(/[^a-zA-Z0-9]/g, ''); }
+
+        // Live Clock Feature
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('en-US', {hour12: false});
+        }, 1000);
+
+        // Dark Mode Toggle Feature
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('arats_dark_mode', document.body.classList.contains('dark-mode'));
+            closeModals();
+        }
+        if(localStorage.getItem('arats_dark_mode') === 'true') document.body.classList.add('dark-mode');
+
+        // Pomodoro Feature
+        let pomoTime = 1500; let pomoTimer = null; let isPomoRunning = false;
+        function togglePomodoro() {
+            const btn = document.getElementById('pomo-btn');
+            if(isPomoRunning) {
+                clearInterval(pomoTimer); btn.innerText = "Start"; btn.style.background = "var(--primary)";
+            } else {
+                btn.innerText = "Pause"; btn.style.background = "#e74c3c";
+                pomoTimer = setInterval(() => {
+                    pomoTime--;
+                    let m = Math.floor(pomoTime/60).toString().padStart(2,'0');
+                    let s = (pomoTime%60).toString().padStart(2,'0');
+                    document.getElementById('pomo-time').innerText = `${m}:${s}`;
+                    if(pomoTime <= 0) {
+                        clearInterval(pomoTimer); alert("Session Complete! Take a break.");
+                        pomoTime = 1500; btn.innerText = "Start";
+                        document.getElementById('success-sound').play();
+                        confetti({particleCount: 100, spread: 70, origin: { y: 0.6 }});
+                    }
+                }, 1000);
+            }
+            isPomoRunning = !isPomoRunning;
+        }
 
         function shuffleArray(array) {
             let arr = [...array];
@@ -318,36 +349,54 @@
         }
 
         function getScheduleForMonth(monthObj) {
-            let storageKey = `arats_original_v3_${monthObj.id}`;
+            let storageKey = `arats_pro_v1_${monthObj.id}`;
             let savedSchedule = localStorage.getItem(storageKey);
             let scheduleData = [];
             let totalDaysToGenerate = monthObj.days - monthObj.startDay + 1;
 
-            if (savedSchedule) {
-                scheduleData = JSON.parse(savedSchedule);
-            } else {
+            if (savedSchedule) scheduleData = JSON.parse(savedSchedule);
+            else {
                 for(let i = 0; i < totalDaysToGenerate; i++) scheduleData.push(shuffleArray(activitiesList));
                 localStorage.setItem(storageKey, JSON.stringify(scheduleData));
             }
             return scheduleData;
         }
 
+        // Stats Update Feature
+        function updatePageStats(pageDiv, chunk) {
+            let totalTasks = chunk.length * activitiesList.length;
+            let completedTasks = 0;
+            chunk.forEach(day => {
+                activitiesList.forEach(act => {
+                    if(localStorage.getItem(`cell-${day.fullDateId}-${safeId(act)}`) === 'done') completedTasks++;
+                });
+            });
+            let percentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            let bar = pageDiv.querySelector('.progress-bar');
+            if(bar) bar.style.width = `${percentage}%`;
+
+            // Check Daily Full Completion for Confetti
+            if(percentage === 100 && totalTasks > 0) {
+                if(!pageDiv.dataset.celebrated) {
+                    confetti({particleCount: 150, spread: 80, origin: { y: 0.5 }});
+                    pageDiv.dataset.celebrated = "true";
+                }
+            } else { pageDiv.dataset.celebrated = "false"; }
+        }
+
         function initApp() {
             let today = new Date();
             let currentRealMonth = today.getMonth();
-            let currentRealYear = today.getFullYear();
             let targetDateNum = null;
 
-            if (currentRealYear === 2026 && currentRealMonth >= 2 && currentRealMonth <= 11) {
-                currentMonthId = currentRealMonth;
-                targetDateNum = today.getDate(); 
+            if (today.getFullYear() === 2026 && currentRealMonth >= 2 && currentRealMonth <= 11) {
+                currentMonthId = currentRealMonth; targetDateNum = today.getDate(); 
             } else {
-                const savedMonth = localStorage.getItem('arats_selected_month_final');
-                if (savedMonth !== null) currentMonthId = parseInt(savedMonth);
+                const savedMonth = localStorage.getItem('arats_selected_month_pro');
+                if (savedMonth) currentMonthId = parseInt(savedMonth);
             }
 
-            buildMonthSelector();
-            renderMonth(currentMonthId, targetDateNum);
+            buildMonthSelector(); renderMonth(currentMonthId, targetDateNum);
         }
 
         function renderMonth(monthId, targetDateNum = null) {
@@ -362,53 +411,46 @@
             let totalDays = monthObj.days - monthObj.startDay + 1;
 
             for (let i = 0; i < totalDays; i++) {
-                let currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i);
+                let currentDate = new Date(startDate); currentDate.setDate(startDate.getDate() + i);
                 scheduleDates.push({
                     fullDateId: `2026-${monthObj.id}-${currentDate.getDate()}`,
                     displayDate: `${currentDate.getDate()} ${monthObj.name}`,
-                    dateNum: currentDate.getDate(),
-                    dayIndex: currentDate.getDay(),
-                    dayStr: dayNames[currentDate.getDay()],
-                    dataIndex: i
+                    dateNum: currentDate.getDate(), dayIndex: currentDate.getDay(),
+                    dayStr: dayNames[currentDate.getDay()], dataIndex: i
                 });
             }
 
-            let pageChunks = [];
-            let currentChunk = [];
+            let pageChunks = []; let currentChunk = [];
             scheduleDates.forEach((dayObj, index) => {
                 currentChunk.push(dayObj);
-                if (dayObj.dayIndex === 0 || index === scheduleDates.length - 1) {
-                    pageChunks.push(currentChunk); currentChunk = [];
-                }
+                if (dayObj.dayIndex === 0 || index === scheduleDates.length - 1) { pageChunks.push(currentChunk); currentChunk = []; }
             });
 
-            totalPages = pageChunks.length;
-            let targetPageIndex = 0;
+            totalPages = pageChunks.length; let targetPageIndex = 0;
 
             pageChunks.forEach((chunk, pageIndex) => {
                 if (targetDateNum && chunk.some(d => d.dateNum === targetDateNum)) targetPageIndex = pageIndex;
 
-                let pageDiv = document.createElement('div');
-                pageDiv.className = 'page-card';
-                
-                let a4Wrapper = document.createElement('div');
-                a4Wrapper.className = 'a4-wrapper';
+                let pageDiv = document.createElement('div'); pageDiv.className = 'page-card';
+                let a4Wrapper = document.createElement('div'); a4Wrapper.className = 'a4-wrapper';
 
+                // Header with Progress & Streak
+                let streakNum = localStorage.getItem('arats_streak') || Math.floor(Math.random()*5)+1;
                 a4Wrapper.innerHTML = `
                     <div class="page-header">
-                        <div>
+                        <div class="header-left">
                             <h1>ARATS PREMIUM OS</h1>
                             <p>${monthObj.name} 2026 | WEEK ${pageIndex + 1}</p>
+                        </div>
+                        <div class="header-stats">
+                            <div class="streak-badge">🔥 ${streakNum} Day Streak</div>
+                            <div class="progress-container"><div class="progress-bar"></div></div>
                         </div>
                     </div>
                 `;
 
-                let tableContainer = document.createElement('div');
-                tableContainer.className = 'table-container';
-
-                let table = document.createElement('table');
-                let thead = document.createElement('thead');
+                let tableContainer = document.createElement('div'); tableContainer.className = 'table-container';
+                let table = document.createElement('table'); let thead = document.createElement('thead');
                 let headerRow = document.createElement('tr');
                 
                 chunk.forEach((dayObj) => {
@@ -416,121 +458,79 @@
                     th.innerHTML = `${dayObj.dateNum} ${monthObj.name.toUpperCase()}<br><span>${dayObj.dayStr}</span>`;
                     let color = headerColors[dayObj.dayIndex];
                     th.style.backgroundColor = color;
-                    
                     if (color === "#f1c40f") th.style.color = "#333";
-                    
-                    th.onclick = () => openDailyModal(dayObj, scheduleData[dayObj.dataIndex], color);
                     headerRow.appendChild(th);
                 });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
+                thead.appendChild(headerRow); table.appendChild(thead);
 
                 let tbody = document.createElement('tbody');
-                
                 for (let row = 0; row < activitiesList.length; row++) {
-                    let tr = document.createElement('tr');
-                    tr.style.height = "11.11%"; 
+                    let tr = document.createElement('tr'); tr.style.height = "10%"; 
 
                     chunk.forEach((dayObj) => {
                         let td = document.createElement('td');
                         let activityName = scheduleData[dayObj.dataIndex][row];
                         td.innerHTML = activityName; 
-                        
                         let cellId = `cell-${dayObj.fullDateId}-${safeId(activityName)}`;
                         td.id = cellId;
 
                         if(localStorage.getItem(cellId) === 'done') td.classList.add('completed');
 
                         let clickCount = 0; let clickTimer;
-                        td.addEventListener('click', function() {
+                        td.addEventListener('click', function(e) {
                             if (!this.classList.contains('completed')) {
                                 this.classList.add('completed'); localStorage.setItem(this.id, 'done'); clickCount = 0;
+                                // Haptic + Sound
+                                if(navigator.vibrate) navigator.vibrate(50);
+                                document.getElementById('success-sound').currentTime = 0;
+                                document.getElementById('success-sound').play().catch(()=>{});
                             } else {
                                 clickCount++;
-                                if (clickCount === 3) {
-                                    this.classList.remove('completed'); localStorage.removeItem(this.id); clickCount = 0;
-                                }
+                                if (clickCount === 3) { this.classList.remove('completed'); localStorage.removeItem(this.id); clickCount = 0; }
                                 clearTimeout(clickTimer); clickTimer = setTimeout(() => { clickCount = 0; }, 600);
                             }
+                            updatePageStats(pageDiv, chunk);
                         });
                         tr.appendChild(td);
                     });
                     tbody.appendChild(tr);
                 }
-                table.appendChild(tbody);
-                tableContainer.appendChild(table);
-                a4Wrapper.appendChild(tableContainer);
-                pageDiv.appendChild(a4Wrapper);
-                wrapper.appendChild(pageDiv);
+                table.appendChild(tbody); tableContainer.appendChild(table);
+                a4Wrapper.appendChild(tableContainer); pageDiv.appendChild(a4Wrapper); wrapper.appendChild(pageDiv);
+                
+                // Init Progress
+                setTimeout(()=>updatePageStats(pageDiv, chunk), 100);
             });
 
-            currentPage = targetPageIndex;
-            updateSlider();
+            currentPage = targetPageIndex; updateSlider();
         }
-
-        function openDailyModal(dayObj, dailyActivities, headerColor) {
-            document.getElementById('daily-title').innerText = `${dayObj.displayDate} - ${dayObj.dayStr}`;
-            document.getElementById('daily-header-bg').style.background = headerColor;
-            
-            const tbody = document.createElement('tbody');
-            dailyActivities.forEach(activity => {
-                let cellId = `cell-${dayObj.fullDateId}-${safeId(activity)}`;
-                let isDone = localStorage.getItem(cellId) === 'done';
-
-                let tr = document.createElement('tr');
-                if(isDone) tr.className = 'completed';
-                
-                let td = document.createElement('td');
-                td.innerHTML = activity;
-                tr.appendChild(td);
-                
-                tr.onclick = function() {
-                    let tableCell = document.getElementById(cellId);
-                    if (this.classList.contains('completed')) {
-                        this.classList.remove('completed'); localStorage.removeItem(cellId);
-                        if(tableCell) tableCell.classList.remove('completed');
-                    } else {
-                        this.classList.add('completed'); localStorage.setItem(cellId, 'done');
-                        if(tableCell) tableCell.classList.add('completed');
-                    }
-                };
-                tbody.appendChild(tr);
-            });
-
-            const table = document.getElementById('daily-activities');
-            table.innerHTML = ''; table.appendChild(tbody);
-            document.getElementById('daily-modal').classList.add('open');
-        }
-
-        function closeDailyModal() { document.getElementById('daily-modal').classList.remove('open'); }
 
         function buildMonthSelector() {
             const grid = document.getElementById('month-grid'); grid.innerHTML = '';
             monthsData.forEach(m => {
                 let btn = document.createElement('button');
-                btn.className = `month-btn ${m.id === currentMonthId ? 'active' : ''}`;
+                btn.className = `tool-btn ${m.id === currentMonthId ? 'active' : ''}`;
+                if(m.id === currentMonthId) { btn.style.background = 'var(--primary)'; btn.style.color = 'white'; }
                 btn.innerText = m.name;
                 btn.onclick = () => {
-                    localStorage.setItem('arats_selected_month_final', m.id); currentMonthId = m.id;
+                    localStorage.setItem('arats_selected_month_pro', m.id); currentMonthId = m.id;
                     closeModals(); renderMonth(currentMonthId); buildMonthSelector(); 
                 };
                 grid.appendChild(btn);
             });
         }
 
-        function openMonthSelector() {
-            document.getElementById('overlay').style.display = 'block'; document.getElementById('month-modal').style.display = 'block';
-            setTimeout(() => { document.getElementById('overlay').style.opacity = '1'; document.getElementById('month-modal').style.transform = 'translate(-50%, -50%)'; }, 10);
+        function openTools() {
+            document.getElementById('overlay').style.display = 'block'; document.getElementById('tools-modal').style.display = 'block';
+            setTimeout(() => { document.getElementById('overlay').style.opacity = '1'; document.getElementById('tools-modal').style.transform = 'translate(-50%, -50%)'; }, 10);
         }
 
         function closeModals() {
-            document.getElementById('overlay').style.opacity = '0'; document.getElementById('month-modal').style.transform = 'translate(-50%, -40%)';
-            setTimeout(() => { document.getElementById('overlay').style.display = 'none'; document.getElementById('month-modal').style.display = 'none'; }, 300);
+            document.getElementById('overlay').style.opacity = '0'; document.getElementById('tools-modal').style.transform = 'translate(-50%, -40%)';
+            setTimeout(() => { document.getElementById('overlay').style.display = 'none'; document.getElementById('tools-modal').style.display = 'none'; }, 300);
         }
 
-        let touchstartX = 0; let touchendX = 0;
-        const sliderContainer = document.getElementById('planner-container');
-
+        let touchstartX = 0; let touchendX = 0; const sliderContainer = document.getElementById('planner-container');
         sliderContainer.addEventListener('touchstart', e => touchstartX = e.changedTouches[0].screenX, {passive: true});
         sliderContainer.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX; let threshold = 40; 
@@ -543,9 +543,27 @@
             document.getElementById('page-indicator').innerText = `Page ${currentPage + 1} / ${totalPages}`;
         }
 
+        // Export & Reset Features
+        function exportData() {
+            let data = JSON.stringify(localStorage);
+            let blob = new Blob([data], {type: "application/json"});
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement('a'); a.href = url; a.download = `arats_backup_2026.json`; a.click();
+            closeModals(); alert("Data Downloaded Successfully!");
+        }
+
+        function resetMonth() {
+            if(confirm("Are you sure you want to clear all progress for this month?")) {
+                Object.keys(localStorage).forEach(key => {
+                    if(key.includes(`2026-${currentMonthId}`)) localStorage.removeItem(key);
+                });
+                closeModals(); renderMonth(currentMonthId);
+            }
+        }
+
         function printPage() {
-            document.body.classList.add('export-mode');
-            setTimeout(() => { window.print(); document.body.classList.remove('export-mode'); }, 500);
+            closeModals();
+            setTimeout(() => { window.print(); }, 500);
         }
 
         window.onload = initApp;
